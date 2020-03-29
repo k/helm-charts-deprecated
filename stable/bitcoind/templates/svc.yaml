@@ -8,6 +8,7 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
+  type: {{ .Values.service.type }}
   ports:
     - name: rpc
       port: {{ .Values.service.rpcPort }}
@@ -19,6 +20,19 @@ spec:
       port: {{ .Values.service.testnetPort }}
     - name: testnet-p2p
       port: {{ .Values.service.testnetP2pPort }}
+    {{- if .Values.lnd.enabled }}
+    - name: lnd-rpc
+      port: {{ .Values.lnd.service.rpcPort }}
+      targetPort: lnd-rpc
+    - name: lnd-grpc
+      port: {{ .Values.lnd.service.grpcPort }}
+      targetPort: lnd-grpc
+    {{- if .Values.lnd.lndConfStaticServer }}
+    - name: static
+      port: 3000
+      targetPort: static
+    {{- end }}
+    {{- end }}
   selector:
     app: {{ template "bitcoind.name" . }}
     release: {{ .Release.Name }}

@@ -8,6 +8,7 @@ image:
   pullPolicy: IfNotPresent
 
 service:
+  type: NodePort
   rpcPort: 8332
   p2pPort: 8333
   testnetPort: 18332
@@ -24,7 +25,7 @@ persistence:
   ##
   # storageClass: "-"
   accessMode: ReadWriteOnce
-  size: 300Gi
+  size: 30Gi
 
 ## Configure resource requests and limits
 ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
@@ -37,7 +38,38 @@ resources: {}
 # Custom bitcoind configuration file used to override default bitcoind settings
 configurationFile:
   bitcoin.conf: |-
+    testnet=1
     server=1
-    printtoconsole=1
     rpcuser=rpcuser
     rpcpassword=rpcpassword
+    zmqpubrawblock=tcp://127.0.0.1:8332
+    zmqpubrawtx=tcp://127.0.0.1:8333
+
+lnd:
+  enabled: true
+  cliContainer: true
+  lndConfStaticServer: true
+
+  image:
+    repository: kbambridge/lnd
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    rpcPort: 10009
+    grpcPort: 8080
+  
+  persistence:
+    enabled: true
+    ## database data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    # storageClass: "-"
+    accessMode: ReadWriteOnce
+    size: 8Gi
+
+  resources: {}

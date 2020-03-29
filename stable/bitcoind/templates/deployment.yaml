@@ -55,6 +55,70 @@ spec:
               mountPath: /bitcoin/.bitcoin/bitcoin.conf
               subPath: bitcoin.conf
             {{- end }}
+        {{- if .Values.lnd.enabled }}
+        - name: lnd
+          image: "{{ .Values.lnd.image.repository }}:{{ .Values.lnd.image.tag }}"
+          imagePullPolicy: {{ .Values.lnd.image.pullPolicy | quote }}
+          ports:
+          - name: lnd-rpc
+            containerPort: {{ .Values.lnd.service.rpcPort }}
+          - name: lnd-grpc
+            containerPort: {{ .Values.lnd.service.grpcPort }}
+          command:
+            - 'lnd'
+            - --bitcoin.active
+            - --bitcoin.testnet
+            - --bitcoin.node=bitcoind
+            - --bitcoind.dir=/bitcoin/.bitcoin
+            - --debuglevel=debug
+          resources:
+{{ toYaml .Values.lnd.resources | indent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /bitcoin
+            - name: lnd-data
+              mountPath: "/root/.lnd"
+            {{- if .Values.configurationFile }}
+            - name: config
+              mountPath: /bitcoin/.bitcoin/bitcoin.conf
+              subPath: bitcoin.conf
+            {{- end }}
+          {{- if .Values.lnd.cliContainer }}
+        - name: lncli
+          image: "{{ .Values.lnd.image.repository }}:{{ .Values.lnd.image.tag }}"
+          imagePullPolicy: {{ .Values.lnd.image.pullPolicy | quote }}
+          command:
+            - 'sleep'
+            - '99999999'
+          volumeMounts:
+            - name: data
+              mountPath: /bitcoin
+            - name: lnd-data
+              mountPath: "/root/.lnd"
+            {{- if .Values.configurationFile }}
+            - name: config
+              mountPath: /bitcoin/.bitcoin/bitcoin.conf
+              subPath: bitcoin.conf
+            {{- end }}
+          {{- end }}
+          {{- if .Values.lnd.lndConfStaticServer }}
+        - name: lnd-conf
+          image: "abhin4v/hastatic:latest"
+          workingDir: /lnd
+          command: ["/usr/bin/hastatic"]
+          ports:
+          - name: static
+            containerPort: 3000
+          volumeMounts:
+            - name: lnd-data
+              mountPath: "/lnd"
+            {{- if .Values.configurationFile }}
+            - name: config
+              mountPath: /bitcoin/.bitcoin/bitcoin.conf
+              subPath: bitcoin.conf
+            {{- end }}
+          {{- end }}
+        {{- end }}
       volumes:
         {{- if .Values.configurationFile }}
         - name: config
@@ -67,6 +131,13 @@ spec:
         {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.existingClaim | default (include "bitcoind.fullname" .) }}
+        {{- else }}
+          emptyDir: {}
+        {{- end }}
+        - name: lnd-data
+        {{- if .Values.lnd.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ template "bitcoind.fullname" . }}-lnd
         {{- else }}
           emptyDir: {}
         {{- end -}}
