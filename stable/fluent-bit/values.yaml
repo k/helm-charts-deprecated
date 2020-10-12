@@ -144,6 +144,9 @@ parsers:
 
 env: []
 
+livenessProbe: {}
+readinessProbe: {}
+
 ## Annotations to add to the DaemonSet's Pods
 podAnnotations: {}
 
